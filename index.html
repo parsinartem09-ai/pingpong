@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pong Game - Виртуальный соперник</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 5px;
+            color: #0ea5e9;
+            text-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            margin-bottom: 15px;
+        }
+        
+        .game-container {
+            position: relative;
+            margin-bottom: 25px;
+        }
+        
+        canvas {
+            background-color: #0f172a;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 2px solid #334155;
+        }
+        
+        .score-board {
+            display: flex;
+            justify-content: space-between;
+            width: 800px;
+            margin-bottom: 15px;
+            background-color: rgba(30, 41, 59, 0.7);
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .player-score, .ai-score {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .player-name {
+            font-size: 1rem;
+            color: #94a3b8;
+            margin-bottom: 5px;
+        }
+        
+        .player-score-value, .ai-score-value {
+            font-size: 2.5rem;
+            color: #f8fafc;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 1rem;
+            background-color: #0ea5e9;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:hover {
+            background-color: #0284c7;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .difficulty-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        select {
+            padding: 10px;
+            border-radius: 6px;
+            background-color: #1e293b;
+            color: white;
+            border: 1px solid #475569;
+            font-size: 1rem;
+        }
+        
+        .instructions {
+            background-color: rgba(30, 41, 59, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 25px;
+            max-width: 800px;
+            line-height: 1.6;
+        }
+        
+        .instructions h3 {
+            color: #0ea5e9;
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .instructions kbd {
+            background-color: #475569;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        .game-status {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.85);
+            padding: 30px 50px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+            z-index: 10;
+            box-shadow: 0 0 30px rgba(14, 165, 233, 0.3);
+            border: 2px solid #0ea5e9;
+        }
+        
+        .game-status h2 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #0ea5e9;
+        }
+        
+        .game-status p {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: #cbd5e1;
+        }
+        
+        footer {
+            margin-top: 30px;
+            color: #64748b;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 850px) {
+            .game-container, .score-board, .instructions {
+                width: 95vw;
+            }
+            
+            canvas {
+                width: 95vw;
+                height: auto;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>PONG</h1>
+        <p class="subtitle">Сразитесь с виртуальным соперником</p>
+    </div>
+    
+    <div class="score-board">
+        <div class="player-score">
+            <div class="player-name">ИГРОК</div>
+            <div id="playerScore" class="player-score-value">0</div>
+        </div>
+        <div class="ai-score">
+            <div class="player-name">КОМПЬЮТЕР</div>
+            <div id="aiScore" class="ai-score-value">0</div>
+        </div>
+    </div>
+    
+    <div class="game-container">
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+        
+        <div id="gameStatus" class="game-status">
+            <h2 id="statusTitle">ПАУЗА</h2>
+            <p id="statusMessage">Нажмите ПРОБЕЛ для продолжения</p>
+            <button id="restartButton">Начать заново</button>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button id="startButton">Старт</button>
+        <button id="pauseButton">Пауза</button>
+        <button id="restartButton2">Начать заново</button>
+        
+        <div class="difficulty-selector">
+            <label for="difficulty">Сложность:</label>
+            <select id="difficulty">
+                <option value="easy">Легкая</option>
+                <option value="medium" selected>Средняя</option>
+                <option value="hard">Сложная</option>
+                <option value="expert">Эксперт</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="instructions">
+        <h3>Управление в игре:</h3>
+        <ul>
+            <li>Используйте клавиши <kbd>↑</kbd> и <kbd>↓</kbd> или <kbd>W</kbd> и <kbd>S</kbd> для перемещения платформы вверх/вниз</li>
+            <li>Нажмите <kbd>ПРОБЕЛ</kbd> для старта игры и паузы</li>
+            <li>Первый, кто наберет 10 очков, побеждает в матче</li>
+            <li>ИИ соперник адаптируется к выбранному уровню сложности</li>
+        </ul>
+    </div>
+    
+    <footer>
+        Создано с использованием HTML5 Canvas и JavaScript | Pong Game
+    </footer>
+
+    <script>
+        // Получаем элементы DOM
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const playerScoreElement = document.getElementById('playerScore');
+        const aiScoreElement = document.getElementById('aiScore');
+        const startButton = document.getElementById('startButton');
+        const pauseButton = document.getElementById('pauseButton');
+        const restartButton = document.getElementById('restartButton');
+        const restartButton2 = document.getElementById('restartButton2');
+        const gameStatus = document.getElementById('gameStatus');
+        const statusTitle = document.getElementById('statusTitle');
+        const statusMessage = document.getElementById('statusMessage');
+        const difficultySelect = document.getElementById('difficulty');
+        
+        // Игровые переменные
+        let gameRunning = false;
+        let gamePaused = false;
+        let playerScore = 0;
+        let aiScore = 0;
+        let winningScore = 10;
+        
+        // Настройки сложности
+        const difficultySettings = {
+            easy: { aiSpeed: 4, aiReaction: 0.85, aiError: 0.2 },
+            medium: { aiSpeed: 5, aiReaction: 0.9, aiError: 0.1 },
+            hard: { aiSpeed: 6, aiReaction: 0.95, aiError: 0.05 },
+            expert: { aiSpeed: 7, aiReaction: 0.98, aiError: 0.02 }
+        };
+        
+        let currentDifficulty = 'medium';
+        
+        // Размеры и свойства объектов
+        const paddleWidth = 15;
+        const paddleHeight = 100;
+        const ballSize = 15;
+        
+        // Позиции объектов
+        let playerPaddle = {
+            x: 20,
+            y: canvas.height / 2 - paddleHeight / 2,
+            width: paddleWidth,
+            height: paddleHeight,
+            speed: 8,
+            dy: 0
+        };
+        
+        let aiPaddle = {
+            x: canvas.width - 20 - paddleWidth,
+            y: canvas.height / 2 - paddleHeight / 2,
+            width: paddleWidth,
+            height: paddleHeight,
+            speed: difficultySettings[currentDifficulty].aiSpeed,
+            dy: 0
+        };
+        
+        let ball = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            width: ballSize,
+            height: ballSize,
+            speed: 6,
+            dx: 0,
+            dy: 0
+        };
+        
+        // Управление клавишами
+        const keys = {};
+        
+        // Обработчики событий клавиатуры
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            
+            // Пауза по пробелу
+            if (e.key === ' ') {
+                e.preventDefault();
+                togglePause();
+            }
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        // Обновление управления
+        function updateKeys() {
+            // Управление игроком
+            playerPaddle.dy = 0;
+            
+            if ((keys['ArrowUp'] || keys['w'] || keys['W']) && playerPaddle.y > 0) {
+                playerPaddle.dy = -playerPaddle.speed;
+            }
+            
+            if ((keys['ArrowDown'] || keys['s'] || keys['S']) && playerPaddle.y < canvas.height - playerPaddle.height) {
+                playerPaddle.dy = playerPaddle.speed;
+            }
+        }
+        
+        // ИИ для управления платформой компьютера
+        function updateAI() {
+            const settings = difficultySettings[currentDifficulty];
+            aiPaddle.speed = settings.aiSpeed;
+            
+            // Центр платформы ИИ
+            const aiPaddleCenter = aiPaddle.y + aiPaddle.height / 2;
+            
+            // Центр мяча
+            const ballCenter = ball.y + ball.height / 2;
+            
+            // Вычисляем расстояние до мяча
+            let distance = ballCenter - aiPaddleCenter;
+            
+            // Добавляем случайную ошибку в зависимости от сложности
+            const error = (Math.random() - 0.5) * settings.aiError * 100;
+            distance += error;
+            
+            // Реакция ИИ (чем выше реакция, тем точнее ИИ)
+            if (Math.abs(distance) > 10) {
+                aiPaddle.dy = distance * settings.aiReaction;
+                
+                // Ограничиваем скорость
+                if (aiPaddle.dy > aiPaddle.speed) aiPaddle.dy = aiPaddle.speed;
+                if (aiPaddle.dy < -aiPaddle.speed) aiPaddle.dy = -aiPaddle.speed;
+            } else {
+                aiPaddle.dy = 0;
+            }
+            
+            // Двигаем платформу ИИ
+            aiPaddle.y += aiPaddle.dy;
+            
+            // Проверяем границы для ИИ
+            if (aiPaddle.y < 0) aiPaddle.y = 0;
+            if (aiPaddle.y + aiPaddle.height > canvas.height) aiPaddle.y = canvas.height - aiPaddle.height;
+        }
+        
+        // Сброс мяча
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            
+            // Случайное направление, но всегда в сторону проигравшего
+            const direction = (Math.random() > 0.5) ? 1 : -1;
+            ball.dx = direction * ball.speed;
+            
+            // Случайный угол
+            ball.dy = (Math.random() * 2 - 1) * ball.speed;
+        }
+        
+        // Обновление позиции мяча
+        function updateBall() {
+            // Двигаем мяч
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+            
+            // Отскок от верхней и нижней стенок
+            if (ball.y <= 0 || ball.y + ball.height >= canvas.height) {
+                ball.dy *= -1;
+                
+                // Корректируем позицию, чтобы мяч не застревал в стене
+                if (ball.y <= 0) ball.y = 0;
+                if (ball.y + ball.height >= canvas.height) ball.y = canvas.height - ball.height;
+            }
+            
+            // Проверка столкновения с платформой игрока
+            if (
+                ball.x <= playerPaddle.x + playerPaddle.width &&
+                ball.x + ball.width >= playerPaddle.x &&
+                ball.y <= playerPaddle.y + playerPaddle.height &&
+                ball.y + ball.height >= playerPaddle.y
+            ) {
+                // Вычисляем точку удара относительно центра платформы
+                const hitPoint = (ball.y + ball.height / 2) - (playerPaddle.y + playerPaddle.height / 2);
+                const angle = hitPoint / (playerPaddle.height / 2) * (Math.PI / 4);
+                
+                // Изменяем направление и увеличиваем скорость
+                ball.dx = Math.cos(angle) * ball.speed;
+                ball.dy = Math.sin(angle) * ball.speed;
+                
+                // Корректируем позицию, чтобы мяч не застревал в платформе
+                ball.x = playerPaddle.x + playerPaddle.width;
+            }
+            
+            // Проверка столкновения с платформой ИИ
+            if (
+                ball.x + ball.width >= aiPaddle.x &&
+                ball.x <= aiPaddle.x + aiPaddle.width &&
+                ball.y <= aiPaddle.y + aiPaddle.height &&
+                ball.y + ball.height >= aiPaddle.y
+            ) {
+                // Вычисляем точку удара относительно центра платформы
+                const hitPoint = (ball.y + ball.height / 2) - (aiPaddle.y + aiPaddle.height / 2);
+                const angle = hitPoint / (aiPaddle.height / 2) * (Math.PI / 4);
+                
+                // Изменяем направление и увеличиваем скорость
+                ball.dx = -Math.cos(angle) * ball.speed;
+                ball.dy = Math.sin(angle) * ball.speed;
+                
+                // Корректируем позицию, чтобы мяч не застревал в платформе
+                ball.x = aiPaddle.x - ball.width;
+            }
+            
+            // Проверка забития гола
+            if (ball.x < 0) {
+                // ИИ забил гол
+                aiScore++;
+                aiScoreElement.textContent = aiScore;
+                resetBall();
+                checkGameEnd();
+            }
+            
+            if (ball.x > canvas.width) {
+                // Игрок забил гол
+                playerScore++;
+                playerScoreElement.textContent = playerScore;
+                resetBall();
+                checkGameEnd();
+            }
+        }
+        
+        // Обновление позиции платформы игрока
+        function updatePlayerPaddle() {
+            playerPaddle.y += playerPaddle.dy;
+            
+            // Проверяем границы
+            if (playerPaddle.y < 0) playerPaddle.y = 0;
+            if (playerPaddle.y + playerPaddle.height > canvas.height) {
+                playerPaddle.y = canvas.height - playerPaddle.height;
+            }
+        }
+        
+        // Проверка окончания игры
+        function checkGameEnd() {
+            if (playerScore >= winningScore) {
+                showGameStatus("ПОБЕДА!", "Вы победили компьютер!");
+                gameRunning = false;
+            } else if (aiScore >= winningScore) {
+                showGameStatus("ПОРАЖЕНИЕ", "Компьютер оказался сильнее!");
+                gameRunning = false;
+            }
+        }
+        
+        // Отображение статуса игры
+        function showGameStatus(title, message) {
+            statusTitle.textContent = title;
+            statusMessage.textContent = message;
+            gameStatus.style.display = 'block';
+        }
+        
+        // Скрытие статуса игры
+        function hideGameStatus() {
+            gameStatus.style.display = 'none';
+        }
+        
+        // Основной игровой цикл
+        function gameLoop() {
+            // Очищаем canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Обновляем элементы управления
+            updateKeys();
+            
+            if (gameRunning && !gamePaused) {
+                // Обновляем позиции
+                updatePlayerPaddle();
+                updateAI();
+                updateBall();
+            }
+            
+            // Рисуем объекты
+            drawGame();
+            
+            // Продолжаем цикл
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Рисуем игровые объекты
+        function drawGame() {
+            // Рисуем центральную линию
+            ctx.beginPath();
+            ctx.setLineDash([10, 15]);
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Рисуем платформу игрока
+            ctx.fillStyle = '#0ea5e9';
+            ctx.fillRect(playerPaddle.x, playerPaddle.y, playerPaddle.width, playerPaddle.height);
+            
+            // Рисуем платформу ИИ
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(aiPaddle.x, aiPaddle.y, aiPaddle.width, aiPaddle.height);
+            
+            // Рисуем мяч
+            ctx.fillStyle = '#f8fafc';
+            ctx.beginPath();
+            ctx.arc(
+                ball.x + ball.width / 2, 
+                ball.y + ball.height / 2, 
+                ball.width / 2, 
+                0, 
+                Math.PI * 2
+            );
+            ctx.fill();
+            
+            // Если игра на паузе, рисуем затемнение
+            if (gamePaused) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = '36px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('ПАУЗА', canvas.width / 2, canvas.height / 2);
+            }
+        }
+        
+        // Запуск игры
+        function startGame() {
+            if (!gameRunning) {
+                gameRunning = true;
+                gamePaused = false;
+                hideGameStatus();
+                
+                // Сброс мяча
+                resetBall();
+                
+                // Начальное направление мяча
+                const direction = (Math.random() > 0.5) ? 1 : -1;
+                ball.dx = direction * ball.speed;
+                ball.dy = (Math.random() * 2 - 1) * ball.speed;
+            }
+        }
+        
+        // Пауза/продолжение игры
+        function togglePause() {
+            if (!gameRunning) return;
+            
+            gamePaused = !gamePaused;
+            
+            if (gamePaused) {
+                showGameStatus("ПАУЗА", "Нажмите ПРОБЕЛ для продолжения");
+            } else {
+                hideGameStatus();
+            }
+        }
+        
+        // Перезапуск игры
+        function restartGame() {
+            playerScore = 0;
+            aiScore = 0;
+            playerScoreElement.textContent = playerScore;
+            aiScoreElement.textContent = aiScore;
+            
+            // Сброс позиций
+            playerPaddle.y = canvas.height / 2 - paddleHeight / 2;
+            aiPaddle.y = canvas.height / 2 - paddleHeight / 2;
+            
+            resetBall();
+            
+            gameRunning = false;
+            gamePaused = false;
+            hideGameStatus();
+        }
+        
+        // Обновление сложности
+        function updateDifficulty() {
+            currentDifficulty = difficultySelect.value;
+            aiPaddle.speed = difficultySettings[currentDifficulty].aiSpeed;
+        }
+        
+        // Назначаем обработчики событий
+        startButton.addEventListener('click', startGame);
+        pauseButton.addEventListener('click', togglePause);
+        restartButton.addEventListener('click', restartGame);
+        restartButton2.addEventListener('click', restartGame);
+        difficultySelect.addEventListener('change', updateDifficulty);
+        
+        // Инициализация игры
+        resetBall();
+        gameLoop();
+        
+        // Отображаем стартовое сообщение
+        showGameStatus("PONG", "Нажмите СТАРТ для начала игры");
+    </script>
+</body>
+</html>
